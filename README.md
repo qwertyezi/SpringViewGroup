@@ -1,4 +1,4 @@
 # SpringRecyclerView
-### RecyclerView的拉伸弹性效果
+### 具有弹性拉伸效果的RecyclerView
 
 <img src="/SpringRecyclerView/screenshot/anim.gif" width="310">
