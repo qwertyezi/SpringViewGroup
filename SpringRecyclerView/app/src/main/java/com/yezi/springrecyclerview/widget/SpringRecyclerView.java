@@ -1,4 +1,4 @@
-package com.yezi.springrecyclerview;
+package com.yezi.springrecyclerview.widget;
 
 
 import android.animation.Animator;
