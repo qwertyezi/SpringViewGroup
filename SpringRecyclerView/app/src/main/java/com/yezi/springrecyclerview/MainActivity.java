@@ -40,7 +40,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public int getItemCount() {
-            return 20;
+            return 3;
         }
 
         class VH extends RecyclerView.ViewHolder {

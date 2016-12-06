@@ -75,11 +75,21 @@ public class SpringRecyclerView extends RecyclerView {
 
                 if (mLayoutManager.findLastCompletelyVisibleItemPosition() == mLayoutManager.getItemCount() - 1
                         && moveY < downY && downY - moveY < mMaxLength && !mDoAnimation) {
-                    mScaleY = (downY - moveY) / mMaxLength * SCALE_FACTOR + 1.0f;
-                    if (mScaleY - 1.0f < 0.01f)
+
+                    if (mLayoutManager.findLastCompletelyVisibleItemPosition() -
+                            mLayoutManager.findFirstCompletelyVisibleItemPosition() ==
+                            mLayoutManager.getItemCount() - 1) {
+                        //RV一屏完全显示所有Item，向上滑动时做压缩效果
+                        mScaleY = 1.0f - (downY - moveY) / mMaxLength * SCALE_FACTOR;
+                        mPivotY = getTop();
+                    } else {
+                        mScaleY = (downY - moveY) / mMaxLength * SCALE_FACTOR + 1.0f;
+                        mPivotY = getBottom();
+                    }
+
+                    if (Math.abs(mScaleY - 1.0f) < 0.01f)
                         mScaleY = 1.0f;
                     mPivotX = (getRight() - getLeft()) / 2;
-                    mPivotY = getBottom();
 
                     invalidate();
                 }
@@ -97,7 +107,7 @@ public class SpringRecyclerView extends RecyclerView {
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
                 if (isScaled() && !mDoAnimation) {
-                    backToNoScale();
+                    backToNoScale(isExpand());
                 }
                 downY = moveY = 0.0f;
                 break;
@@ -106,12 +116,16 @@ public class SpringRecyclerView extends RecyclerView {
         return isScaled() || super.dispatchTouchEvent(e);
     }
 
-    private void backToNoScale() {
-        doScaleAnimation(false, moveY > downY, getCanvasScale(), 0.98f, 1.0f);
+    private void backToNoScale(boolean isExpand) {
+        doScaleAnimation(false, !isExpand || moveY > downY, getCanvasScale(), 1.0f + (isExpand ? -0.02f : 0.02f), 1.0f);
     }
 
     private void flingScale(boolean isHeader, float scale) {
         doScaleAnimation(true, isHeader, 1.0f, scale, 0.99f, 1.0f);
+    }
+
+    private boolean isExpand() {
+        return getCanvasScale() > 1.0f;
     }
 
     private boolean isScaled() {
