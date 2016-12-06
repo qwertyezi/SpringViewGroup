@@ -11,6 +11,7 @@ import android.widget.Toast;
 public class MainActivity extends AppCompatActivity {
 
     private SpringRecyclerView mSpringRecyclerView;
+    private Adapter mAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -22,11 +23,26 @@ public class MainActivity extends AppCompatActivity {
 
     private void initView() {
         mSpringRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-        Adapter adapter = new Adapter();
-        mSpringRecyclerView.setAdapter(adapter);
+        mAdapter = new Adapter();
+        mSpringRecyclerView.setAdapter(mAdapter);
+    }
+
+    public void LessItemClick(View view) {
+        mAdapter.setItemCount(3);
+    }
+
+    public void MoreItemClick(View view) {
+        mAdapter.setItemCount(20);
     }
 
     private class Adapter extends RecyclerView.Adapter<Adapter.VH> {
+
+        private int mCount = 20;
+
+        public void setItemCount(int count) {
+            mCount = count;
+            notifyDataSetChanged();
+        }
 
         @Override
         public VH onCreateViewHolder(ViewGroup parent, int viewType) {
@@ -40,7 +56,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public int getItemCount() {
-            return 3;
+            return mCount;
         }
 
         class VH extends RecyclerView.ViewHolder {

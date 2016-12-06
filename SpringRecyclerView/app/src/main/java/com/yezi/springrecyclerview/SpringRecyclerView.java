@@ -48,6 +48,7 @@ public class SpringRecyclerView extends RecyclerView {
 
     private void init() {
         mVelocityTracker = VelocityTracker.obtain();
+        setOverScrollMode(OVER_SCROLL_NEVER);
     }
 
     @Override
