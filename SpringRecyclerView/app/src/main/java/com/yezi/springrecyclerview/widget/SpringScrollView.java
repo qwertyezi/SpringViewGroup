@@ -170,7 +170,7 @@ public class SpringScrollView extends ScrollView {
     protected void onScrollChanged(int l, int t, int oldl, int oldt) {
         super.onScrollChanged(l, t, oldl, oldt);
 
-        if (!isScaled() && (isAtTop() || isAtBottom())) {
+        if (!mDoAnimation && (isAtTop() || isAtBottom())) {
             mVelocityTracker.computeCurrentVelocity(1000);
             mVelocity = Math.abs(mVelocityTracker.getYVelocity());
             if (mVelocity > MAX_VELOCITY) {
