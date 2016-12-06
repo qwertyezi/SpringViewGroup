@@ -5,7 +5,9 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
 import android.content.Context;
+import android.graphics.Canvas;
 import android.support.annotation.Nullable;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -26,7 +28,9 @@ public class SpringRecyclerView extends RecyclerView {
     private LinearLayoutManager mLayoutManager;
     private boolean mDoAnimation;
     private VelocityTracker mVelocityTracker;
-    private float downY, moveY, mVelocity, mScale = 1.0f;
+    private float downY, moveY, mVelocity;
+
+    private float mPivotX, mPivotY, mScaleX = 1.0f, mScaleY = 1.0f;
 
     public SpringRecyclerView(Context context) {
         this(context, null);
@@ -47,6 +51,13 @@ public class SpringRecyclerView extends RecyclerView {
     }
 
     @Override
+    public void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+
+        canvas.scale(mScaleX, mScaleY, mPivotX, mPivotY);
+    }
+
+    @Override
     public boolean dispatchTouchEvent(MotionEvent e) {
         if (mLayoutManager == null) {
             mLayoutManager = (LinearLayoutManager) getLayoutManager();
@@ -64,21 +75,23 @@ public class SpringRecyclerView extends RecyclerView {
 
                 if (mLayoutManager.findLastCompletelyVisibleItemPosition() == mLayoutManager.getItemCount() - 1
                         && moveY < downY && downY - moveY < mMaxLength && !mDoAnimation) {
-                    mScale = (downY - moveY) / mMaxLength * SCALE_FACTOR + 1.0f;
-                    if (mScale - 1.0f < 0.01f)
-                        mScale = 1.0f;
-                    setPivotX((getRight() - getLeft()) / 2);
-                    setPivotY(getBottom());
-                    setScaleY(mScale);
+                    mScaleY = (downY - moveY) / mMaxLength * SCALE_FACTOR + 1.0f;
+                    if (mScaleY - 1.0f < 0.01f)
+                        mScaleY = 1.0f;
+                    mPivotX = (getRight() - getLeft()) / 2;
+                    mPivotY = getBottom();
+
+                    invalidate();
                 }
                 if (mLayoutManager.findFirstCompletelyVisibleItemPosition() == 0
                         && moveY > downY && moveY - downY < mMaxLength && !mDoAnimation) {
-                    mScale = (moveY - downY) / mMaxLength * SCALE_FACTOR + 1.0f;
-                    if (mScale - 1.0f < 0.01f)
-                        mScale = 1.0f;
-                    setPivotX((getRight() - getLeft()) / 2);
-                    setPivotY(getTop());
-                    setScaleY(mScale);
+                    mScaleY = (moveY - downY) / mMaxLength * SCALE_FACTOR + 1.0f;
+                    if (mScaleY - 1.0f < 0.01f)
+                        mScaleY = 1.0f;
+                    mPivotX = (getRight() - getLeft()) / 2;
+                    mPivotY = getTop();
+
+                    invalidate();
                 }
                 break;
             case MotionEvent.ACTION_UP:
@@ -87,7 +100,6 @@ public class SpringRecyclerView extends RecyclerView {
                     backToNoScale();
                 }
                 downY = moveY = 0.0f;
-                mScale = 1.0f;
                 break;
         }
 
@@ -95,7 +107,7 @@ public class SpringRecyclerView extends RecyclerView {
     }
 
     private void backToNoScale() {
-        doScaleAnimation(false, moveY > downY, getScaleY(), 0.98f, 1.0f);
+        doScaleAnimation(false, moveY > downY, getCanvasScale(), 0.98f, 1.0f);
     }
 
     private void flingScale(boolean isHeader, float scale) {
@@ -103,12 +115,24 @@ public class SpringRecyclerView extends RecyclerView {
     }
 
     private boolean isScaled() {
-        return getScaleY() != 1.0f;
+        return getCanvasScale() != 1.0f;
+    }
+
+    private float getCanvasScale() {
+        return mScaleY;
     }
 
     private void doScaleAnimation(boolean isFling, boolean isHeader, float... values) {
-        ObjectAnimator animator = ObjectAnimator.ofFloat(this, View.SCALE_Y, values);
+        ValueAnimator animator = ValueAnimator.ofFloat(values);
         animator.setDuration(isFling ? 2 * SCALE_TIME : SCALE_TIME);
+        animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator valueAnimator) {
+                mScaleY = (float) valueAnimator.getAnimatedValue();
+
+                invalidate();
+            }
+        });
         animator.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationStart(Animator animation) {
@@ -118,17 +142,15 @@ public class SpringRecyclerView extends RecyclerView {
             @Override
             public void onAnimationEnd(Animator animation) {
                 mDoAnimation = false;
+                mScaleY = 1.0f;
 
                 changeRVScrollState();
                 //用于结束动画后将RV中的mScrollState置为SCROLL_STATE_IDLE，不然将会出现动画结束后第一次点击条目失效的Bug
             }
         });
-        ObjectAnimator pivotX = ObjectAnimator.ofFloat(this, "pivotX", (getRight() - getLeft()) / 2);
-        ObjectAnimator pivotY = ObjectAnimator.ofFloat(this, "pivotY", isHeader ? getTop() : getBottom());
-
-        AnimatorSet animatorSet = new AnimatorSet();
-        animatorSet.play(animator).with(pivotX).with(pivotY);
-        animatorSet.start();
+        mPivotX = (getRight() - getLeft()) / 2;
+        mPivotY = isHeader ? getTop() : getBottom();
+        animator.start();
     }
 
     private void changeRVScrollState() {
